@@ -134,6 +134,9 @@ impl Plugin for FarmPluginHtmlInject {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
+    use serde_json::Value;
+    use farmfe_core::config::Config;
 
     #[test]
     fn tag_to_html_script_bool() {
