@@ -112,7 +112,7 @@
      }
  }
  
- impl Plugin for FarmPluginHtmlInject {
+impl Plugin for FarmPluginHtmlInject {
      fn name(&self) -> &str {
          "FarmPluginHtmlInject"
      }
@@ -121,13 +121,44 @@
          &self,
          param: &PluginTransformHookParam,
          _ctx: &Arc<CompilationContext>,
-     ) -> Result<Option<PluginTransformHookResult>, CompilationError> {
-         if param.module_type == ModuleType::Html {
-             let content = self.inject_tags(&param.content);
-             Ok(Some(PluginTransformHookResult { content, ..Default::default() }))
-         } else {
-             Ok(None)
-         }
-     }
- }
+    ) -> Result<Option<PluginTransformHookResult>, CompilationError> {
+        if param.module_type == ModuleType::Html {
+            let content = self.inject_tags(&param.content);
+            Ok(Some(PluginTransformHookResult { content, ..Default::default() }))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tag_to_html_script_bool() {
+        let mut attrs = HashMap::new();
+        attrs.insert("async".to_string(), Value::Bool(true));
+        let tag = HtmlTag::Script { attrs, content: None };
+        assert_eq!(FarmPluginHtmlInject::tag_to_html(&tag), "<script async></script>");
+    }
+
+    #[test]
+    fn new_with_invalid_json() {
+        let cfg = Config::default();
+        let plugin = FarmPluginHtmlInject::new(&cfg, "not-json".to_string());
+        assert!(plugin.options.head.is_empty() && plugin.options.body.is_empty());
+    }
+
+    #[test]
+    fn inject_tags_inserts_elements() {
+        let cfg = Config::default();
+        let opts = r#"{\"head\":[{\"tag\":\"meta\",\"attrs\":{\"charset\":\"utf-8\"}}],\"body\":[{\"tag\":\"script\",\"attrs\":{\"src\":\"/main.js\"}}]}"#;
+        let plugin = FarmPluginHtmlInject::new(&cfg, opts.to_string());
+        let html = "<html><head></head><body></body></html>";
+        let result = plugin.inject_tags(html);
+        assert!(result.contains("<meta charset=\"utf-8\"/>"));
+        assert!(result.contains("<script src=\"/main.js\"></script>"));
+    }
+}
  
